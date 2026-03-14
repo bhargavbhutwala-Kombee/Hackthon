@@ -1,0 +1,104 @@
+{
+  "uid": "unified-logs",
+  "title": "Unified Logs (Backend + Frontend)",
+  "tags": ["loki", "logs"],
+  "schemaVersion": 36,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "title": "📊 Log Volume by Service",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 5},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "targets": [
+        {
+          "expr": "sum by (service) (rate({container=~\"orderly-app|orderly-frontend|orderly-postgres\"} [2m]))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "🔴 Backend ERROR Logs",
+      "type": "logs",
+      "gridPos": {"x": 0, "y": 5, "w": 12, "h": 10},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "options": {"dedupStrategy": "none", "showTime": true, "wrapLogMessage": true},
+      "targets": [
+        {
+          "expr": "{container=\"orderly-app\"} |= \"ERROR\"",
+          "legendFormat": ""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "🟡 Frontend (Nginx) Access Logs",
+      "type": "logs",
+      "gridPos": {"x": 12, "y": 5, "w": 12, "h": 10},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "options": {"dedupStrategy": "none", "showTime": true, "wrapLogMessage": true},
+      "targets": [
+        {
+          "expr": "{container=\"orderly-frontend\"}",
+          "legendFormat": ""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "🛡️ Backend WARN Logs",
+      "type": "logs",
+      "gridPos": {"x": 0, "y": 15, "w": 12, "h": 8},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "options": {"dedupStrategy": "none", "showTime": true, "wrapLogMessage": true},
+      "targets": [
+        {
+          "expr": "{container=\"orderly-app\"} |= \"WARN\"",
+          "legendFormat": ""
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "🔍 Anomaly Injection Logs",
+      "type": "logs",
+      "gridPos": {"x": 12, "y": 15, "w": 12, "h": 8},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "options": {"dedupStrategy": "none", "showTime": true, "wrapLogMessage": true},
+      "targets": [
+        {
+          "expr": "{container=\"orderly-app\"} |= \"anomaly\"",
+          "legendFormat": ""
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "🐘 PostgreSQL Logs",
+      "type": "logs",
+      "gridPos": {"x": 0, "y": 23, "w": 24, "h": 7},
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "options": {"dedupStrategy": "none", "showTime": true, "wrapLogMessage": true},
+      "targets": [
+        {
+          "expr": "{container=\"orderly-postgres\"}",
+          "legendFormat": ""
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_LOKI",
+        "type": "datasource",
+        "query": "loki",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  }
+}

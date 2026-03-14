@@ -1,0 +1,16 @@
+{
+  "title": "Traces",
+  "uid": "traces-dashboard",
+  "timezone": "browser",
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "type": "table",
+      "title": "Recent Slow Traces (>500ms)",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+      "targets": [{"query": "{duration > 500ms}", "queryType": "search"}],
+      "datasource": {"type": "tempo", "uid": "tempo"}
+    }
+  ]
+}

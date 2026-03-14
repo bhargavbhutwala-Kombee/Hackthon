@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    @apply bg-background text-textMain antialiased font-sans m-0 p-0;
+  }
+}
+
+@layer components {
+  /* Glassmorphism primitives */
+  .glass-panel {
+    @apply bg-surface/60 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl;
+  }
+  
+  .glass-input {
+    @apply bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-textMain focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-textMuted;
+  }
+
+  .glass-button {
+    @apply relative overflow-hidden bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.98];
+  }
+
+  .glass-button-outline {
+    @apply bg-transparent border border-white/20 hover:bg-white/5 text-textMain font-medium py-3 px-6 rounded-xl transition-all active:scale-[0.98];
+  }
+
+  /* Modals and Overlays */
+  .glass-overlay {
+    @apply fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+  }
+}

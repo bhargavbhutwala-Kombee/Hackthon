@@ -9,7 +9,6 @@
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.3</version>
         <relativePath/>
-        <scope>import</scope>
     </parent>
 
     <groupId>com.kombee</groupId>
@@ -82,11 +81,7 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
             <version>1.32.0</version>
         </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
-            <version>1.32.0</version>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>

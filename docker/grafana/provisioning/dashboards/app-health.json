@@ -1,0 +1,44 @@
+{
+  "title": "App Health",
+  "uid": "app-health",
+  "timezone": "browser",
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Requests per Minute",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count[1m])) * 60", "legendFormat": "RPM", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Error Rate %",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) / sum(rate(http_server_requests_seconds_count[1m])) * 100", "legendFormat": "Error Rate %", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "95th Percentile Latency (s)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))", "legendFormat": "p95", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "barchart",
+      "title": "Slowest Endpoints (Avg Latency)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "topk(5, sum(rate(http_server_requests_seconds_sum[1m])) by (uri) / sum(rate(http_server_requests_seconds_count[1m])) by (uri))", "legendFormat": "{{uri}}", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Active Users (Proxy by Token Requests / unique IPs)",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count[1m]))", "legendFormat": "Active Requests/Sec", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    }
+  ]
+}

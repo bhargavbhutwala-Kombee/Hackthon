@@ -3,7 +3,7 @@ package com.kombee.orderly.config;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
-import io.opentelemetry.sdk.OpenTelemetry;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
@@ -19,7 +19,7 @@ public class OpenTelemetryConfig {
     @Bean
     public Tracer tracer(
             @Value("${OTEL_EXPORTER_OTLP_ENDPOINT:}") String otlpEndpoint) {
-        SdkTracerProvider.Builder builder = SdkTracerProvider.builder();
+        var builder = SdkTracerProvider.builder();
         if (otlpEndpoint != null && !otlpEndpoint.isBlank()) {
             SpanExporter exporter = OtlpHttpSpanExporter.builder()
                     .setEndpoint(otlpEndpoint.trim().replaceAll("/$", "") + "/v1/traces")
@@ -27,7 +27,7 @@ public class OpenTelemetryConfig {
             builder.addSpanProcessor(BatchSpanProcessor.builder(exporter).build());
         }
         SdkTracerProvider tracerProvider = builder.build();
-        OpenTelemetry openTelemetry = OpenTelemetry.builder()
+        OpenTelemetrySdk openTelemetry = OpenTelemetrySdk.builder()
                 .setTracerProvider(tracerProvider)
                 .build();
         GlobalOpenTelemetry.set(openTelemetry);

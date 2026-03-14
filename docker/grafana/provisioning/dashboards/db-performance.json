@@ -1,0 +1,37 @@
+{
+  "title": "Database Performance",
+  "uid": "db-performance",
+  "timezone": "browser",
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Query Duration (Max)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "max(jdbc_connections_active)", "legendFormat": "Max Active Connections", "refId": "A"}, {"expr": "rate(hikaricp_connections_usage_total[1m])", "legendFormat": "Usage", "refId": "B"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "DB Connection Pool Usage",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "hikaricp_connections_active", "legendFormat": "Active Connections", "refId": "A"}, {"expr": "hikaricp_connections_idle", "legendFormat": "Idle Connections", "refId": "B"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "DB Error Rate",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "rate(hikaricp_connections_timeout_total[1m])", "legendFormat": "Timeouts", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    },
+    {
+      "type": "table",
+      "title": "Slow Queries (Trace approximations)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "topk(5, sum by (uri) (rate(http_server_requests_seconds_sum{uri=~\"/api/.*\"}[1m])))", "legendFormat": "{{uri}}", "refId": "A"}],
+      "datasource": {"type": "prometheus", "uid": "prometheus"}
+    }
+  ]
+}

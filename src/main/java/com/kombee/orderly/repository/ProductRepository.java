@@ -17,8 +17,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsBySku(String sku);
 
-    @Query("SELECT p FROM Product p WHERE " +
-           "(:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
-           "(:sku IS NULL OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :sku, '%')))")
+    @Query(value = "SELECT * FROM products p WHERE " +
+           "(CAST(:name AS varchar) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:name AS varchar), '%'))) AND " +
+           "(CAST(:sku AS varchar) IS NULL OR LOWER(p.sku) LIKE LOWER(CONCAT('%', CAST(:sku AS varchar), '%'))) " +
+           "ORDER BY p.name ASC",
+           countQuery = "SELECT COUNT(*) FROM products p WHERE " +
+           "(CAST(:name AS varchar) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:name AS varchar), '%'))) AND " +
+           "(CAST(:sku AS varchar) IS NULL OR LOWER(p.sku) LIKE LOWER(CONCAT('%', CAST(:sku AS varchar), '%')))",
+           nativeQuery = true)
     Page<Product> findAllFiltered(@Param("name") String name, @Param("sku") String sku, Pageable pageable);
 }

@@ -1,0 +1,30 @@
+{
+  "title": "Logs",
+  "uid": "logs-dashboard",
+  "timezone": "browser",
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Log Count by Severity",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(rate({job=\"orderly-app\"}[1m])) by (level)", "refId": "A"}],
+      "datasource": {"type": "loki", "uid": "loki"}
+    },
+    {
+      "type": "logs",
+      "title": "Error Logs",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "{job=\"orderly-app\", level=\"ERROR\"}", "refId": "A"}],
+      "datasource": {"type": "loki", "uid": "loki"}
+    },
+    {
+      "type": "logs",
+      "title": "Validation & Login Failures",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "{job=\"orderly-app\"} |~ \"(?i)(validation|login failed|bad credentials|already exists)\"", "refId": "A"}],
+      "datasource": {"type": "loki", "uid": "loki"}
+    }
+  ]
+}

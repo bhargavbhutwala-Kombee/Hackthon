@@ -1,116 +1,249 @@
-# Orderly Backend (Java)
+# 🚀 Orderly — Hackathon 2.0 Production-Grade App
 
-Spring Boot backend for the Kombee Hackathon: registration, login, Products & Orders CRUD with pagination/filtering, validation, OpenTelemetry spans, structured logging, and configurable anomaly injection.
+A full-stack, production-grade ordering platform built for the **Kombee Hackathon 2.0**, demonstrating real-world engineering skills across Application Development, Docker, and — most importantly — **Observability**.
 
-## Quick start (Docker only — no local Java/Maven)
+> **Stack:** Java 17 · Spring Boot 3.2 · PostgreSQL · React + Vite · Docker Compose · Prometheus · Loki · Tempo · Grafana
+
+---
+
+## 📐 Architecture
+
+```
+Browser                Docker Network (hackthon_default)
+   │
+   ├─► :4000  orderly-frontend  (React + Nginx)
+   │         └─► /api/*  → proxy to app:8080
+   │
+   ├─► :8080  orderly-app       (Spring Boot REST API)
+   │         └─► orderly-postgres:5432
+   │
+   └─► :3000  orderly-grafana   (Dashboards)
+              ├─ orderly-prometheus :9090   (Metrics)
+              ├─ orderly-loki      :3100   (Logs via Promtail)
+              └─ orderly-tempo     :3200   (Traces via OTLP)
+```
+
+---
+
+## ⚡ Quick Start (Docker — no local Java or Node needed)
 
 ```powershell
-cd c:\Users\Kombee\Desktop\Hackthon
+# From the project root
 docker compose up -d --build
 ```
 
-Then open **http://localhost:8080/api/actuator/health** and **http://localhost:3000** (Grafana: admin/admin).  
-See **[RUN-DOCKER.md](RUN-DOCKER.md)** for full steps and troubleshooting.
+Wait ~30 seconds for the backend health check, then open:
 
----
+| Service | URL | Credentials |
+|---|---|---|
+| 🎨 **Frontend** | http://localhost:4000 | Register an account |
+| 🔧 **Backend API** | http://localhost:8080/api | JWT via `/auth/login` |
+| 📊 **Grafana** | http://localhost:3000 | `admin` / `admin` |
+| 📈 **Prometheus** | http://localhost:9090 | — |
+| 🔍 **Tempo** | http://localhost:3200 | — |
 
-## Database
-
-**Use PostgreSQL** for the hackathon (production-like, good for DB performance dashboards).
-
-- **Local (no Docker):** Install PostgreSQL, create DB `orderly`, user `orderly`/password `orderly`, then run with profile `docker`:
-  ```bash
-  set SPRING_PROFILES_ACTIVE=docker
-  mvn spring-boot:run
-  ```
-- **With Docker:** The stack uses PostgreSQL in Docker; no manual DB setup needed (see below).
-
-Default (no profile) uses **H2 in-memory** for quick local runs.
-
----
-
-## Requirements
-
-- Java 17+
-- Maven 3.8+ (for local build)
-- Docker & Docker Compose (for full stack)
-
-## Build & Run (local)
-
-```bash
-mvn spring-boot:run
-```
-
-API base: `http://localhost:8080/api`
-
-## Docker (full stack: App + PostgreSQL + Prometheus + Loki + Tempo + Grafana)
-
-From the project root:
-
-```bash
-docker compose up -d --build
-```
-
-| Service     | URL                      | Purpose        |
-|------------|---------------------------|----------------|
-| Application| http://localhost:8080/api | Backend API    |
-| PostgreSQL | localhost:5432            | Database       |
-| Prometheus | http://localhost:9090     | Metrics        |
-| Loki       | http://localhost:3100     | Logs           |
-| Tempo      | http://localhost:3200     | Traces         |
-| Grafana    | http://localhost:3000     | Dashboards (admin/admin) |
-
-- **Database:** PostgreSQL 16, DB `orderly`, user/password `orderly`. The app uses it automatically when run via Docker (profile `docker`).
-- **Traces:** App sends spans to Tempo via OTLP HTTP (`OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318`).
-- **Metrics:** Prometheus scrapes `http://app:8080/api/actuator/prometheus`.
-- **Grafana:** Pre-provisioned datasources: Prometheus (default), Loki, Tempo.
-
-Stop everything:
-
-```bash
+```powershell
+# Stop everything
 docker compose down
+
+# Stop and wipe all data
+docker compose down -v
 ```
 
-## Main endpoints
+---
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST   | `/auth/register` | No  | Register (username, email, password, displayName) |
-| POST   | `/auth/login`    | No  | Login (usernameOrEmail, password) → JWT |
-| GET    | `/products`      | Yes | List products (page, size, name, sku) |
-| GET    | `/products/{id}` | Yes | Get product |
-| POST   | `/products`      | Yes | Create product |
-| PUT    | `/products/{id}` | Yes | Update product |
-| DELETE | `/products/{id}` | Yes | Delete product |
-| POST   | `/orders`        | Yes | Create order (body: `{ "items": [ { "productId", "quantity" } ] }`) |
-| GET    | `/orders`        | Yes | List my orders (page, size, status) |
-| GET    | `/orders/{id}`   | Yes | Get order by id |
-| PATCH  | `/orders/{id}`   | Yes | Update order status (body: `{ "status": "CONFIRMED" \| "SHIPPED" \| "DELIVERED" \| "CANCELLED" }`) |
+## 🎨 Frontend (React + Vite)
 
-All error responses use a standard shape: `{ "error", "message", "path", "timestamp", "details" }`. Validation and not-found return 400 and 404 accordingly.
+A sleek **dark-mode glassmorphism** UI accessible at **[http://localhost:4000](http://localhost:4000)**.
 
-## Demo user (after first run)
+**Features:**
+- 🔐 **Register / Login** with JWT authentication
+- 📦 **Product Management** — paginated table with SKU/Name search, Create, Edit, Delete via modal dialogs
+- 🔁 **Nginx Reverse Proxy** — routes `/api/*` to the backend seamlessly (no CORS issues)
 
-- **Username:** `demo`
-- **Password:** `demo123`
+**Tech:** React 18 · TypeScript · Vite · Tailwind CSS v3 · Axios · React Router v6 · Lucide Icons
 
-## Observability
+---
 
-- **Metrics:** `GET /api/actuator/prometheus` — includes HTTP request metrics plus custom counters: `auth_login_attempts_total`, `auth_login_failures_total`, `auth_register_total`, `orders_created_total`, `products_created_total`, `validation_failures_total`.
-- **Health:** `GET /api/actuator/health` — includes DB status when run with Docker profile.
-- **Logs:** Structured JSON in Docker (`docker,observability` profile); `traceId` and `spanId` in MDC for correlation and filtering by trace ID in Loki.
-- **Traces:** Every request has a root `http.request` span; controllers and services create child spans. OTLP export to Tempo when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (e.g. in Docker).
+## 🔧 Backend API (Spring Boot)
 
-## Anomaly injection
+**Base URL:** `http://localhost:8080/api`
 
-In `application.yml`:
+### Authentication
 
+| Method | Path | Auth Required | Description |
+|---|---|---|---|
+| `POST` | `/auth/register` | ❌ | Register with `username`, `email`, `password` |
+| `POST` | `/auth/login` | ❌ | Login → returns `{ "token": "..." }` |
+
+### Products
+
+| Method | Path | Auth Required | Description |
+|---|---|---|---|
+| `GET` | `/products` | ✅ | List (params: `page`, `size`, `name`, `sku`) |
+| `GET` | `/products/{id}` | ✅ | Get by ID |
+| `POST` | `/products` | ✅ | Create (`sku`, `name`, `description`, `price`, `stockQuantity`) |
+| `PUT` | `/products/{id}` | ✅ | Update |
+| `DELETE` | `/products/{id}` | ✅ | Delete |
+
+### Orders
+
+| Method | Path | Auth Required | Description |
+|---|---|---|---|
+| `POST` | `/orders` | ✅ | Create (`{ "items": [{ "productId", "quantity" }] }`) |
+| `GET` | `/orders` | ✅ | List my orders (params: `page`, `size`, `status`) |
+| `GET` | `/orders/{id}` | ✅ | Get by ID |
+| `PATCH` | `/orders/{id}` | ✅ | Update status: `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
+
+All errors use a standard shape: `{ "error", "message", "path", "timestamp", "details" }`.
+
+---
+
+## 📊 Observability Stack
+
+### Metrics → Prometheus + Grafana
+Prometheus scrapes two sources:
+- **Backend** (`/api/actuator/prometheus`) — HTTP request metrics, HikariCP DB pool, JVM memory, custom counters (`auth_login_attempts_total`, `orders_created_total`, etc.)
+- **Frontend** (`nginx-exporter:9113`) — Nginx active connections, request rate
+
+### Logs → Promtail → Loki → Grafana
+**Promtail** auto-discovers all Docker containers via the Docker socket and ships their logs to Loki with labels (`container`, `service`).
+
+Log sources collected:
+- `orderly-app` — Spring Boot structured JSON logs (includes `traceId` for correlation)
+- `orderly-frontend` — Nginx access logs
+- `orderly-postgres` — PostgreSQL server logs
+
+### Traces → OpenTelemetry → Tempo → Grafana
+Every HTTP request creates a root span. Custom child spans are added inside `ProductService` and `OrderService` to trace the full journey.
+
+### 📺 Pre-Provisioned Grafana Dashboards
+
+| Dashboard | Data Source | What it Shows |
+|---|---|---|
+| **App Health** | Prometheus | RPM, Error Rate %, p95 Latency, Slowest Endpoints |
+| **Database Performance** | Prometheus | HikariCP pool usage, slow query detection |
+| **Logs** | Loki | Error/Warn log streams, auth failures |
+| **Traces** | Tempo | Slow traces (>500ms), span timing breakdown |
+| **Unified Logs** | Loki | Backend + Frontend + PostgreSQL logs in one view |
+| **System Overview** | Prometheus | Backend AND Frontend metrics side-by-side |
+
+---
+
+## 🕷️ Anomaly Injection
+
+The built-in `AnomalyInjector` artificially degrades performance to demonstrate observability under stress.
+
+Controlled via environment variable in `docker-compose.yml`:
+```yaml
+ANOMALY_ENABLED: "true"
+```
+
+Or tuned via `application.yml`:
 ```yaml
 anomaly:
   enabled: true
-  latency-ms: 500
-  error-probability: 0.1
+  latency-ms: 500           # Adds 500ms delay
+  error-probability: 0.1    # 10% chance of returning HTTP 500
   error-endpoints: "/api/products,/api/orders"
 ```
 
-Enables artificial delay and random 500s on product/order endpoints for observability demos.
+When enabled, you will see the **p95 latency spike** and **error rate climb** on the App Health dashboard.
+
+---
+
+## 🔥 Load Testing with k6
+
+The `load-test.js` script simulates concurrent users peaking at **100 VUs** to stress-test the system and trigger anomalies.
+
+### Run (Docker — no k6 install needed)
+
+```powershell
+docker run --rm -v "c:\Users\Kombee\Desktop\Hackthon:/app" grafana/k6 run /app/load-test.js
+```
+
+### Load Stages
+
+```
+0s ──────── 30s ──────────── 90s ─────────── 120s ──── 150s
+Warm-up      Steady State       SPIKE          Cool-down
+0 → 10 VUs   Hold 20 VUs    20 → 100 VUs    100 → 0 VUs
+```
+
+### What it Tests
+
+1. **List Products** — `GET /products` with pagination
+2. **Search Products** — `GET /products?name=Widget`
+3. **Create Product** — `POST /products` (write load)
+4. **Get Order** — `GET /orders/{id}` (read with random ID)
+5. **List Orders** — `GET /orders`
+
+### Thresholds (Pass/Fail Criteria)
+
+| Threshold | Target |
+|---|---|
+| `http_req_duration p(95)` | < 2000ms |
+| `http_req_failed` | < 10% error rate |
+| `product_list_duration p(90)` | < 1500ms |
+
+> 📊 While the test runs, open the **App Health** dashboard in Grafana to watch latency and error rate spike in real-time!
+
+---
+
+## 🗂️ Project Structure
+
+```
+Hackthon/
+├── src/                         # Spring Boot Java backend
+│   └── main/java/com/kombee/orderly/
+│       ├── config/              # OpenTelemetry, Security, CORS
+│       ├── controller/          # REST controllers
+│       ├── service/             # Business logic + custom spans
+│       ├── repository/          # JPA repositories
+│       └── util/AnomalyInjector.java
+├── frontend/                    # React + Vite frontend
+│   ├── src/
+│   │   ├── pages/               # Login, Register, Products
+│   │   ├── AuthContext.tsx       # JWT state management
+│   │   └── api.ts               # Axios client
+│   ├── nginx.conf               # SPA routing + /stub_status
+│   └── Dockerfile               # Multi-stage build → Nginx
+├── docker/
+│   ├── prometheus.yml           # Scrape configs (backend + nginx)
+│   ├── promtail.yml             # Docker log auto-discovery
+│   ├── tempo.yml                # Trace storage config
+│   └── grafana/provisioning/
+│       ├── datasources/         # Prometheus, Loki, Tempo
+│       └── dashboards/          # 6 JSON dashboard definitions
+├── load-test.js                 # k6 load test script
+├── docker-compose.yml           # Full stack orchestration
+└── Dockerfile                   # Maven build → JRE image
+```
+
+---
+
+## 🛠️ Requirements
+
+- **Docker** + **Docker Compose** (for the full stack — recommended)
+- **Java 17+** + **Maven 3.8+** (for local backend-only development)
+- **Node 20+** + **npm** (for local frontend-only development)
+
+---
+
+## 🧑‍💻 Local Development (without Docker)
+
+**Backend only:**
+```powershell
+mvn spring-boot:run
+# API at http://localhost:8080/api (uses H2 in-memory by default)
+```
+
+**Frontend only:**
+```powershell
+cd frontend
+npm install
+# Set your API URL (ensure the backend is running)
+$env:VITE_API_URL = "http://localhost:8080/api"
+npm run dev
+# UI at http://localhost:5173
+```
