@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: orderly-backend
+  datasource:
+    url: jdbc:h2:mem:orderly;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-for-hackathon-demo-only-change-in-prod}
+  expiration-ms: 86400000
+
+# Actuator & Prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Anomaly injection (toggle for hackathon demo)
+anomaly:
+  enabled: false
+  latency-ms: 500
+  error-probability: 0.0
+  error-endpoints: "/api/products,/api/orders"
+
+logging:
+  level:
+    root: INFO
+    com.kombee: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
