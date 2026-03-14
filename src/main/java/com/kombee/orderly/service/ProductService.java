@@ -4,7 +4,9 @@ import com.kombee.orderly.dto.common.PageResponse;
 import com.kombee.orderly.dto.product.ProductRequest;
 import com.kombee.orderly.dto.product.ProductResponse;
 import com.kombee.orderly.entity.Product;
+import com.kombee.orderly.exception.ResourceNotFoundException;
 import com.kombee.orderly.exception.ValidationException;
+import com.kombee.orderly.metrics.ObservabilityMetrics;
 import com.kombee.orderly.repository.ProductRepository;
 import com.kombee.orderly.util.AnomalyInjector;
 import io.opentelemetry.api.trace.Span;
@@ -28,6 +30,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final Tracer tracer;
     private final AnomalyInjector anomalyInjector;
+    private final ObservabilityMetrics metrics;
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> findAll(int page, int size, String name, String sku) {
@@ -54,7 +57,7 @@ public class ProductService {
             anomalyInjector.maybeInject("/api/products");
             span.setAttribute("productId", id);
             Product product = productRepository.findById(id)
-                    .orElseThrow(() -> new ValidationException("Product not found: " + id));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
             return toResponse(product);
         } finally {
             span.end();
@@ -78,6 +81,7 @@ public class ProductService {
                     .stockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0)
                     .build();
             product = productRepository.save(product);
+            metrics.productCreated();
             log.info("Product created: id={}, sku={}", product.getId(), product.getSku());
             return toResponse(product);
         } finally {
@@ -92,7 +96,7 @@ public class ProductService {
             anomalyInjector.maybeInject("/api/products");
             span.setAttribute("productId", id);
             Product product = productRepository.findById(id)
-                    .orElseThrow(() -> new ValidationException("Product not found: " + id));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
             if (!product.getSku().equals(request.getSku()) && productRepository.existsBySku(request.getSku())) {
                 throw new ValidationException("Product with SKU already exists: " + request.getSku());
             }
@@ -118,7 +122,7 @@ public class ProductService {
             anomalyInjector.maybeInject("/api/products");
             span.setAttribute("productId", id);
             if (!productRepository.existsById(id)) {
-                throw new ValidationException("Product not found: " + id);
+                throw new ResourceNotFoundException("Product not found: " + id);
             }
             productRepository.deleteById(id);
             log.info("Product deleted: id={}", id);

@@ -26,7 +26,7 @@
         </root>
     </springProfile>
 
-    <springProfile name="prod,observability">
+    <springProfile name="prod,observability,docker">
         <root level="INFO">
             <appender-ref ref="CONSOLE_JSON"/>
         </root>

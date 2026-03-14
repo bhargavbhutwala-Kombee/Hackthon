@@ -2,8 +2,12 @@ package com.kombee.orderly.config;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetry;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,8 +17,16 @@ public class OpenTelemetryConfig {
     public static final String INSTRUMENTATION_SCOPE = "com.kombee.orderly";
 
     @Bean
-    public Tracer tracer() {
-        SdkTracerProvider tracerProvider = SdkTracerProvider.builder().build();
+    public Tracer tracer(
+            @Value("${OTEL_EXPORTER_OTLP_ENDPOINT:}") String otlpEndpoint) {
+        SdkTracerProvider.Builder builder = SdkTracerProvider.builder();
+        if (otlpEndpoint != null && !otlpEndpoint.isBlank()) {
+            SpanExporter exporter = OtlpHttpSpanExporter.builder()
+                    .setEndpoint(otlpEndpoint.trim().replaceAll("/$", "") + "/v1/traces")
+                    .build();
+            builder.addSpanProcessor(BatchSpanProcessor.builder(exporter).build());
+        }
+        SdkTracerProvider tracerProvider = builder.build();
         OpenTelemetry openTelemetry = OpenTelemetry.builder()
                 .setTracerProvider(tracerProvider)
                 .build();

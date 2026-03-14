@@ -5,6 +5,7 @@ import com.kombee.orderly.dto.auth.LoginRequest;
 import com.kombee.orderly.dto.auth.RegisterRequest;
 import com.kombee.orderly.entity.User;
 import com.kombee.orderly.exception.ValidationException;
+import com.kombee.orderly.metrics.ObservabilityMetrics;
 import com.kombee.orderly.repository.UserRepository;
 import com.kombee.orderly.security.JwtUtil;
 import io.opentelemetry.api.trace.Span;
@@ -26,6 +27,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final Tracer tracer;
+    private final ObservabilityMetrics metrics;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -34,10 +36,12 @@ public class AuthService {
             span.setAttribute("username", request.getUsername());
             if (userRepository.existsByUsername(request.getUsername())) {
                 log.warn("Registration failed: username already exists - {}", request.getUsername());
+                metrics.registerFailure();
                 throw new ValidationException("Username already exists");
             }
             if (userRepository.existsByEmail(request.getEmail())) {
                 log.warn("Registration failed: email already exists - {}", request.getEmail());
+                metrics.registerFailure();
                 throw new ValidationException("Email already exists");
             }
             User user = User.builder()
@@ -48,6 +52,7 @@ public class AuthService {
                     .role(User.Role.USER)
                     .build();
             user = userRepository.save(user);
+            metrics.registerSuccess();
             log.info("User registered successfully: userId={}, username={}", user.getId(), user.getUsername());
             String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name());
             return AuthResponse.of(token, user.getId(), user.getUsername(), user.getEmail(), user.getRole().name());
@@ -59,12 +64,14 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         Span span = tracer.spanBuilder("auth.login").startSpan();
         try (var scope = span.makeCurrent()) {
+            metrics.loginAttempt();
             span.setAttribute("usernameOrEmail", request.getUsernameOrEmail());
             User user = userRepository.findByUsername(request.getUsernameOrEmail())
                     .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
                     .orElse(null);
             if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 log.warn("Login failed: invalid credentials for {}", request.getUsernameOrEmail());
+                metrics.loginFailure();
                 throw new ValidationException("Invalid username/email or password");
             }
             log.info("User logged in: userId={}, username={}", user.getId(), user.getUsername());

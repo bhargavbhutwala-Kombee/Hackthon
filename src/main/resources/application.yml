@@ -18,6 +18,29 @@ spring:
   h2:
     console:
       enabled: true
+---
+# Docker/PostgreSQL profile: use when running in Docker or with SPRING_PROFILES_ACTIVE=docker
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:orderly}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USER:orderly}
+    password: ${DB_PASSWORD:orderly}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  h2:
+    console:
+      enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: always
 
 server:
   port: 8080

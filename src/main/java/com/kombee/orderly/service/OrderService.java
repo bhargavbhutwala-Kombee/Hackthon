@@ -9,7 +9,10 @@ import com.kombee.orderly.entity.Order;
 import com.kombee.orderly.entity.OrderItem;
 import com.kombee.orderly.entity.Product;
 import com.kombee.orderly.entity.User;
+import com.kombee.orderly.dto.order.OrderStatusUpdateRequest;
+import com.kombee.orderly.exception.ResourceNotFoundException;
 import com.kombee.orderly.exception.ValidationException;
+import com.kombee.orderly.metrics.ObservabilityMetrics;
 import com.kombee.orderly.repository.OrderRepository;
 import com.kombee.orderly.repository.ProductRepository;
 import com.kombee.orderly.repository.UserRepository;
@@ -41,6 +44,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final Tracer tracer;
     private final AnomalyInjector anomalyInjector;
+    private final ObservabilityMetrics metrics;
 
     @Transactional
     public OrderResponse create(Long userId, OrderRequest request) {
@@ -49,12 +53,12 @@ public class OrderService {
             anomalyInjector.maybeInject("/api/orders");
             span.setAttribute("userId", userId);
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ValidationException("User not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             List<OrderItem> items = new ArrayList<>();
             BigDecimal total = BigDecimal.ZERO;
             for (OrderItemRequest itemReq : request.getItems()) {
                 Product product = productRepository.findById(itemReq.getProductId())
-                        .orElseThrow(() -> new ValidationException("Product not found: " + itemReq.getProductId()));
+                        .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + itemReq.getProductId()));
                 if (product.getStockQuantity() < itemReq.getQuantity()) {
                     log.warn("Order validation failed: insufficient stock for productId={}", product.getId());
                     throw new ValidationException("Insufficient stock for product: " + product.getName());
@@ -80,7 +84,29 @@ public class OrderService {
             }
             order.getItems().addAll(items);
             order = orderRepository.save(order);
+            metrics.orderCreated();
             log.info("Order created: orderId={}, userId={}, total={}", order.getId(), userId, total);
+            return toResponse(order);
+        } finally {
+            span.end();
+        }
+    }
+
+    @Transactional
+    public OrderResponse updateStatus(Long userId, Long orderId, Order.OrderStatus status) {
+        Span span = tracer.spanBuilder("order.updateStatus").startSpan();
+        try (var scope = span.makeCurrent()) {
+            anomalyInjector.maybeInject("/api/orders");
+            span.setAttribute("orderId", orderId);
+            span.setAttribute("status", status.name());
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+            if (!order.getUser().getId().equals(userId)) {
+                throw new ResourceNotFoundException("Order not found: " + orderId);
+            }
+            order.setStatus(status);
+            order = orderRepository.save(order);
+            log.info("Order status updated: orderId={}, status={}", orderId, status);
             return toResponse(order);
         } finally {
             span.end();
@@ -94,7 +120,7 @@ public class OrderService {
             anomalyInjector.maybeInject("/api/orders");
             span.setAttribute("userId", userId);
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ValidationException("User not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             Order.OrderStatus statusEnum = null;
             if (status != null && !status.isBlank()) {
                 try {
@@ -128,9 +154,9 @@ public class OrderService {
             anomalyInjector.maybeInject("/api/orders");
             span.setAttribute("orderId", orderId);
             Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new ValidationException("Order not found: " + orderId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
             if (!order.getUser().getId().equals(userId)) {
-                throw new ValidationException("Order not found: " + orderId);
+                throw new ResourceNotFoundException("Order not found: " + orderId);
             }
             return toResponse(order);
         } finally {

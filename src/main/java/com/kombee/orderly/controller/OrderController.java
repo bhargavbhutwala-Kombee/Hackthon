@@ -3,6 +3,7 @@ package com.kombee.orderly.controller;
 import com.kombee.orderly.dto.common.PageResponse;
 import com.kombee.orderly.dto.order.OrderRequest;
 import com.kombee.orderly.dto.order.OrderResponse;
+import com.kombee.orderly.dto.order.OrderStatusUpdateRequest;
 import com.kombee.orderly.security.UserPrincipal;
 import com.kombee.orderly.service.OrderService;
 import io.opentelemetry.api.trace.Span;
@@ -69,6 +70,24 @@ public class OrderController {
             }
             OrderResponse order = orderService.getById(userId, id);
             return ResponseEntity.ok(order);
+        } finally {
+            span.end();
+        }
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @Valid @RequestBody OrderStatusUpdateRequest request) {
+        Span span = tracer.spanBuilder("controller.orders.updateStatus").startSpan();
+        try (var scope = span.makeCurrent()) {
+            Long userId = principal != null ? principal.getUserId() : null;
+            if (userId == null) {
+                return ResponseEntity.status(401).build();
+            }
+            OrderResponse updated = orderService.updateStatus(userId, id, request.getStatus());
+            return ResponseEntity.ok(updated);
         } finally {
             span.end();
         }
