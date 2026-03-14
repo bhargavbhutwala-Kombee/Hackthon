@@ -24,7 +24,8 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://localhost:8080/api';
+// When running via Docker use the service name; for local k6 installs use localhost
+const BASE_URL = __ENV.BASE_URL || 'http://orderly-app:8080/api';
 
 // ─── Setup (runs ONCE before all VUs start) ───────────────────────────────────
 // This registers a shared test user and returns the token for all virtual users.
@@ -74,7 +75,9 @@ export default function (data) {
   const listRes = http.get(`${BASE_URL}/products?page=0&size=10`, { headers });
   check(listRes, {
     'list products: status 200': (r) => r.status === 200,
-    'list products: has content': (r) => JSON.parse(r.body).content !== undefined,
+    'list products: has content': (r) => {
+      try { return JSON.parse(r.body).content !== undefined; } catch (_) { return false; }
+    },
   });
   productListDuration.add(listRes.timings.duration); // track custom metric
   sleep(1);

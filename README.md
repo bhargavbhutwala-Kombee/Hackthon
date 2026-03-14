@@ -1,5 +1,7 @@
 # 🚀 Orderly — Hackathon 2.0 Production-Grade App
 
+> 🎥 **[Watch the Demo Recording](https://www.awesomescreenshot.com/video/50430620?key=4238042c8664fada6b3e8643bca04bd7)**
+
 A full-stack, production-grade ordering platform built for the **Kombee Hackathon 2.0**, demonstrating real-world engineering skills across Application Development, Docker, and — most importantly — **Observability**.
 
 > **Stack:** Java 17 · Spring Boot 3.2 · PostgreSQL · React + Vite · Docker Compose · Prometheus · Loki · Tempo · Grafana
@@ -159,7 +161,10 @@ The `load-test.js` script simulates concurrent users peaking at **100 VUs** to s
 ### Run (Docker — no k6 install needed)
 
 ```powershell
-docker run --rm -v "c:\Users\Kombee\Desktop\Hackthon:/app" grafana/k6 run /app/load-test.js
+# Connect to the same Docker network so k6 can reach the backend
+docker run --rm -v "c:\Users\Kombee\Desktop\Hackthon:/app" `
+  --network hackthon_default `
+  grafana/k6 run -e BASE_URL=http://orderly-app:8080/api /app/load-test.js
 ```
 
 ### Load Stages
